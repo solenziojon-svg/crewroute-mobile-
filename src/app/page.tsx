@@ -1,98 +1,199 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
+
+type Phase = "upload" | "loading" | "result" | "error";
+type Mode = "estimate" | "audit";
 
 export default function Home() {
-  const = useState<"estimate" | "audit">("estimate");
-  const = useState<"upload" | "scanning" | "result" | "error">("upload");
-  const = useState<string | null>(null);
-  const = useState<any>(null);
-  const = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const = useState<Mode>("estimate");
+  const = useState<Phase>("upload");
+  const = useState<string>("");
+  const = useState<Record<string, unknown>>({});
+  const = useState<string>("");
 
-  const handleFile = async (file: File) => {
+  function handleModeSwitch(newMode: Mode) {
+    setMode(newMode);
+    setPhase("upload");
+    setPreview("");
+    setResult({});
+    setErrorMsg("");
+  }
+
+  function handleReset() {
+    setPhase("upload");
+    setPreview("");
+    setResult({});
+    setErrorMsg("");
+  }
+
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target?.result as string);
+    reader.onload = (ev) => {
+      setPreview(ev.target?.result as string);
+    };
     reader.readAsDataURL(file);
 
-    setPhase("scanning");
-    setStep("Sending photo to Claude...");
+    setPhase("loading");
+    setErrorMsg("");
+
+    const form = new FormData();
+    form.append("photo", file);
+    form.append("mode", mode);
 
     try {
-      const form = new FormData();
-      form.append("photo", file);
-      form.append("mode", mode);
+      const res = await fetch("/api/analyze", { method: "POST", body: form });
+      const data = await res.json();
 
-      const resp = await fetch("/api/analyze", { 
-        method: "POST", 
-        body: form 
-      });
+      if (!res.ok) {
+        setErrorMsg(data.error ?? `Server error ${res.status}`);
+        setPhase("error");
+        return;
+      }
 
-      const data = await resp.json();
       setResult(data);
       setPhase("result");
     } catch (err) {
-      console.error(err);
-      setStep("Error occurred");
+      setErrorMsg(err instanceof Error ? err.message : "Request failed");
       setPhase("error");
     }
-  };
-
-  const reset = () => {
-    setPhase("upload");
-    setPreview(null);
-    setResult(null);
-    setStep("");
-    if (fileRef.current) fileRef.current.value = "";
-  };
+  }
 
   return (
-    <main style={{ background: "#0A0C14", color: "#E8ECF1", minHeight: "100vh", padding: "20px" }}>
-      <h1 style={{ fontSize: 24, fontWeight: "bold", marginBottom: 20 }}>CrewRoute Mobile</h1>
-
-      {phase === "upload" && (
-        <div 
-          onClick={() => fileRef.current?.click()}
-          style={{
-            border: "2px dashed #333",
-            borderRadius: 16,
-            padding: "60px 20px",
-            textAlign: "center",
-            cursor: "pointer"
-          }}
-        >
-          <div style={{ fontSize: 50, marginBottom: 12 }}>📸</div>
-          <div style={{ fontSize: 18, fontWeight: 600 }}>Tap to take a photo</div>
-        </div>
-      )}
-
-      {phase === "scanning" && (
-        <div style={{ textAlign: "center", padding: "60px 20px" }}>
-          <div style={{ fontSize: 48 }}>🤖</div>
-          <p>{step}</p>
-        </div>
-      )}
-
-      {phase === "result" && result && (
-        <div>
-          {preview && <img src={preview} alt="preview" style={{ width: "100%", borderRadius: 12, marginBottom: 16 }} />}
-          <pre style={{ background: "#111", padding: 16, borderRadius: 8, fontSize: 12, whiteSpace: "pre-wrap" }}>
-            {JSON.stringify(result, null, 2)}
-          </pre>
-          <button onClick={reset} style={{ marginTop: 16, padding: "12px", background: "#FF6B35", color: "black", border: "none", borderRadius: 8 }}>
-            New Photo
+    <div style={{
+      minHeight: "100dvh",
+      background: "#0A0C14",
+      color: "#E8ECF1",
+      fontFamily: "system-ui, sans-serif",
+    }}>
+      <header style={{
+        background: "#11151F",
+        padding: "14px 18px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        position: "sticky",
+        top: 0,
+        zIndex: 10,
+        borderBottom: "1px solid #1F2635",
+      }}>
+        <div style={{ fontWeight: 800, fontSize: 17 }}>🌿 CrewRoute OS</div>
+        <div style={{
+          display: "flex",
+          background: "#1F2635",
+          borderRadius: 8,
+          padding: 3,
+          gap: 2,
+        }}>
+          <button
+            onClick={() => handleModeSwitch("estimate")}
+            style={{
+              padding: "7px 14px",
+              borderRadius: 6,
+              border: "none",
+              fontSize: 12,
+              fontWeight: 600,
+              background: mode === "estimate" ? "#FF6B35" : "transparent",
+              color: mode === "estimate" ? "#000" : "#8A95A8",
+            }}
+          >
+            💰 Estimate
+          </button>
+          <button
+            onClick={() => handleModeSwitch("audit")}
+            style={{
+              padding: "7px 14px",
+              borderRadius: 6,
+              border: "none",
+              fontSize: 12,
+              fontWeight: 600,
+              background: mode === "audit" ? "#FF6B35" : "transparent",
+              color: mode === "audit" ? "#000" : "#8A95A8",
+            }}
+          >
+            ✓ Audit
           </button>
         </div>
-      )}
+      </header>
 
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        style={{ display: "none" }}
-        onChange={(e) => e.target.files?.[0 0])}
-      />
-    </main>
+      <div style={{ padding: "20px 18px", maxWidth: 480, margin: "0 auto" }}>
+        {phase === "upload" && (
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>
+              {mode === "estimate" ? "Yard Estimate" : "Job Audit"}
+            </h1>
+            <label htmlFor="photo-input">
+              <div style={{
+                background: "#11151F",
+                border: "2px dashed #1F2635",
+                borderRadius: 14,
+                padding: "52px 20px",
+                textAlign: "center",
+                cursor: "pointer",
+              }}>
+                <div style={{ fontSize: 48, marginBottom: 12 }}>📸</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>Tap to open camera</div>
+              </div>
+            </label>
+            <input
+              id="photo-input"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              style={{ display: "none" }}
+              onChange={handleFileChange}
+            />
+          </div>
+        )}
+
+        {phase === "loading" && (
+          <div style={{ textAlign: "center", padding: "60px 0" }}>
+            <div style={{ fontSize: 48 }}>🤖</div>
+            <p>Analyzing photo...</p>
+          </div>
+        )}
+
+        {phase === "result" && (
+          <div>
+            {preview && <img src={preview} alt="preview" style={{ width: "100%", borderRadius: 12, marginBottom: 16 }} />}
+            <pre style={{ background: "#111", padding: 16, borderRadius: 12, fontSize: 12, whiteSpace: "pre-wrap" }}>
+              {JSON.stringify(result, null, 2)}
+            </pre>
+            <button onClick={handleReset} style={{
+              width: "100%",
+              padding: 16,
+              background: "#FF6B35",
+              color: "black",
+              border: "none",
+              borderRadius: 12,
+              fontWeight: 800,
+              marginTop: 12,
+            }}>
+              New Photo
+            </button>
+          </div>
+        )}
+
+        {phase === "error" && (
+          <div>
+            <div style={{ color: "#F87171", marginBottom: 12 }}>Error: {errorMsg}</div>
+            <button onClick={handleReset} style={{
+              width: "100%",
+              padding: 16,
+              background: "#FF6B35",
+              color: "black",
+              border: "none",
+              borderRadius: 12,
+              fontWeight: 800,
+            }}>
+              Try Again
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
