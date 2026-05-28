@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 
 export default function Home() {
   const = useState<"estimate" | "audit">("estimate");
@@ -10,13 +10,13 @@ export default function Home() {
   const = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFile = useCallback(async (file: File) => {
+  const handleFile = async (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => setPreview(e.target?.result as string);
     reader.readAsDataURL(file);
 
     setPhase("scanning");
-    setStep("Sending to Claude Vision...");
+    setStep("Sending photo to Claude...");
 
     try {
       const form = new FormData();
@@ -36,7 +36,7 @@ export default function Home() {
       setStep("Error occurred");
       setPhase("error");
     }
-  }, );
+  };
 
   const reset = () => {
     setPhase("upload");
@@ -54,7 +54,7 @@ export default function Home() {
         <div 
           onClick={() => fileRef.current?.click()}
           style={{
-            border: "2px dashed #1F2635",
+            border: "2px dashed #333",
             borderRadius: 16,
             padding: "60px 20px",
             textAlign: "center",
@@ -91,7 +91,7 @@ export default function Home() {
         accept="image/*"
         capture="environment"
         style={{ display: "none" }}
-        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+        onChange={(e) => e.target.files?.[0 0])}
       />
     </main>
   );
