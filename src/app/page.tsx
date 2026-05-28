@@ -2,17 +2,6 @@
 
 import { useState, useRef, useCallback } from "react";
 
-const T = {
-  steel:  "#0A0C14",
-  panel:  "#11151F",
-  border: "#1F2635",
-  accent: "#FF6B35",
-  green:  "#00C853",
-  blue:   "#60A5FA",
-  text:   "#E8ECF1",
-  muted:  "#8A95A8",
-};
-
 export default function Home() {
   const = useState<"estimate" | "audit">("estimate");
   const = useState<"upload" | "scanning" | "result" | "error">("upload");
@@ -39,8 +28,6 @@ export default function Home() {
         body: form 
       });
 
-      if (!resp.ok) throw new Error("API request failed");
-
       const data = await resp.json();
       setResult(data);
       setPhase("result");
@@ -60,14 +47,14 @@ export default function Home() {
   };
 
   return (
-    <main style={{ background: T.steel, color: T.text, minHeight: "100vh", padding: "20px" }}>
+    <main style={{ background: "#0A0C14", color: "#E8ECF1", minHeight: "100vh", padding: "20px" }}>
       <h1 style={{ fontSize: 24, fontWeight: "bold", marginBottom: 20 }}>CrewRoute Mobile</h1>
 
       {phase === "upload" && (
         <div 
           onClick={() => fileRef.current?.click()}
           style={{
-            border: `2px dashed ${T.border}`,
+            border: "2px dashed #1F2635",
             borderRadius: 16,
             padding: "60px 20px",
             textAlign: "center",
@@ -92,7 +79,7 @@ export default function Home() {
           <pre style={{ background: "#111", padding: 16, borderRadius: 8, fontSize: 12, whiteSpace: "pre-wrap" }}>
             {JSON.stringify(result, null, 2)}
           </pre>
-          <button onClick={reset} style={{ marginTop: 16, padding: "12px", background: T.accent, color: "black", border: "none", borderRadius: 8 }}>
+          <button onClick={reset} style={{ marginTop: 16, padding: "12px", background: "#FF6B35", color: "black", border: "none", borderRadius: 8 }}>
             New Photo
           </button>
         </div>
@@ -104,7 +91,7 @@ export default function Home() {
         accept="image/*"
         capture="environment"
         style={{ display: "none" }}
-        onChange={(e) => e.target.files?.[0 0])}
+        onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
       />
     </main>
   );
